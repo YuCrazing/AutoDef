@@ -90,6 +90,10 @@ WORKDIR /AutoDef/src/AutoDefRuntime/build
 RUN cmake .. && make -j8
 
 WORKDIR /AutoDef
+
+# Copy host config files to the container
+COPY ./models/X_example/*.json ./models/X_example/
+
 # Set the default command to run when the container starts
 # CMD ["bash"]
-CMD ["./src/AutoDefRuntime/build/bin/AutoDefRuntime", "models/X_example"]
+# CMD ["./src/AutoDefRuntime/build/bin/AutoDefRuntime", "models/X_example"]
