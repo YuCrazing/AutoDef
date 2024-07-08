@@ -1,0 +1,95 @@
+
+
+# # build and install my version of tensorflow
+# WORKDIR /AutoDef/extern/tensorflow_cc/tensorflow_cc
+# RUN mkdir build
+# WORKDIR /AutoDef/extern/tensorflow_cc/tensorflow_cc/build
+# RUN cmake -DTENSORFLOW_STATIC=OFF -DTENSORFLOW_SHARED=ON ..
+# RUN make -j8 && sudo make install; exit 0
+# WORKDIR /AutoDef/extern/tensorflow_cc/tensorflow_cc/build/tensorflow
+# RUN ./bazel-bin/tensorflow/tools/pip_package/build_pip_package ./pip_package_build
+# WORKDIR /AutoDef
+# RUN extern/anaconda/bin/pip install --upgrade extern/tensorflow_cc/tensorflow_cc/build/tensorflow/pip_package_build/tensorflow-1.8.0-cp36-cp36m-linux_x86_64.whl
+
+FROM autodef-0:latest
+
+RUN rm -rf extern/tensorflow_cc/
+WORKDIR /AutoDef/extern
+RUN git clone https://github.com/ericchen321/tensorflow_cc.git
+WORKDIR /AutoDef/extern/tensorflow_cc/tensorflow_cc
+RUN mkdir build
+WORKDIR /AutoDef/extern/tensorflow_cc/tensorflow_cc/build
+RUN cmake -DTENSORFLOW_STATIC=OFF -DTENSORFLOW_SHARED=ON -DALLOW_CUDA=OFF ..
+RUN make -j8 -k 2>&1 | tee build.log
+RUN make install
+WORKDIR /AutoDef/extern/tensorflow_cc/tensorflow_cc/build/tensorflow
+RUN ./bazel-bin/tensorflow/tools/pip_package/build_pip_package ./pip_package_build
+WORKDIR /AutoDef
+# RUN extern/anaconda/bin/pip install --upgrade pip
+# RUN extern/anaconda/bin/pip install --upgrade pip
+# RUN extern/anaconda/bin/pip install protobuf==3.4.0
+# RUN extern/anaconda/bin/pip install extern/tensorflow_cc/tensorflow_cc/build/tensorflow/pip_package_build/tensorflow-1.8.0-cp36-cp36m-linux_x86_64.whl
+
+
+
+RUN extern/anaconda/bin/pip install --upgrade pip
+RUN extern/anaconda/bin/pip install --upgrade pip
+RUN extern/anaconda/bin/pip install protobuf==3.4.0
+RUN extern/anaconda/bin/pip install extern/tensorflow_cc/tensorflow_cc/build/tensorflow/pip_package_build/tensorflow-1.8.0-cp36-cp36m-linux_x86_64.whl
+
+
+
+# Install Keras
+RUN extern/anaconda/bin/pip install keras==2.0.8 
+
+# Now I need to set the default in keras
+RUN mkdir ~/.keras/; exit 0
+RUN cp ./keras.json ~/.keras/
+
+
+### Now the rest of the related code
+# remove the author's GAUSS
+RUN rm -rf extern/GAUSS/
+# clone Eric's GAUSS recursively
+WORKDIR /AutoDef/extern
+RUN git clone --recursive https://github.com/ericchen321/GAUSS.git
+# Build GAUSS
+WORKDIR /AutoDef/extern/GAUSS/
+RUN bash InstallGAUSS_Ubuntu_noqt.sh
+WORKDIR /AutoDef
+
+# Build Libigl Python bindings
+RUN rm -rf extern/libigl/
+RUN git clone -b AutoDef --recursive  https://github.com/lawsonfulton/libigl-legacy.git extern/libigl
+WORKDIR /AutoDef/extern/libigl/python
+RUN mkdir build
+WORKDIR /AutoDef/extern/libigl/python/build
+RUN cmake ..
+RUN make -j8
+WORKDIR /AutoDef
+
+# Build nlohmann's json
+RUN rm -rf extern/json/
+RUN git clone --recursive https://github.com/nlohmann/json.git extern/json/
+WORKDIR /AutoDef/extern/json/
+RUN git reset --hard 9294e25
+
+
+# Build Cubacode
+WORKDIR /AutoDef/src/cubacode
+RUN mkdir build
+WORKDIR /AutoDef/src/cubacode/build
+RUN cmake ..
+RUN make -j8
+
+# Now build the main project
+RUN apt-get install libeigen3-dev
+WORKDIR /AutoDef/src/AutoDefRuntime
+RUN mkdir build
+WORKDIR /AutoDef/src/AutoDefRuntime/build
+RUN cmake .. && make -j8
+
+WORKDIR /AutoDef
+# Set the default command to run when the container starts
+# CMD ["bash"]
+CMD ["./src/AutoDefRuntime/build/bin/AutoDefRuntime", "models/X_example"]
